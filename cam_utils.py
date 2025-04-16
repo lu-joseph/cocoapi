@@ -1,47 +1,7 @@
 import numpy as np
 from skimage import transform
-
-
-def resize(im, target_size=500):
-    """
-    im: numpy.ndarray
-    target_size: int
-    returns:
-        numpy.ndarray
-    """
-    h, w = im.shape[:2]
-    scale = target_size / max(h, w)
-    new_h, new_w = int(h * scale), int(w * scale)
-    resized = transform.resize(im, (new_h, new_w), anti_aliasing=True)
-    resized = (resized * 255).astype(np.uint8)
-
-    padded = np.zeros((target_size, target_size, 3), dtype=np.uint8)
-
-    # Compute top-left corner for centering
-    top = (target_size - new_h) // 2
-    left = (target_size - new_w) // 2
-
-    padded[top : top + new_h, left : left + new_w] = resized
-
-    return padded
-
-
-def split_data(coco, category="person"):
-    """
-    coco: COCO
-    category: str
-    returns: [yes_file_names, no_file_names]
-    """
-    cat_id = coco.getCatIds(catNms=[category])[0]
-    img_ids = coco.getImgIds(catIds=[cat_id])
-    yes_imgs = coco.loadImgs(ids=img_ids)
-    yes_file_names = [im["file_name"] for im in yes_imgs]
-
-    no_target_ids_set = set(coco.getImgIds()) - set(img_ids)
-    no_imgs = coco.loadImgs(ids=list(no_target_ids_set))
-    no_file_names = [im["file_name"] for im in no_imgs]
-
-    return [yes_file_names, no_file_names]
+from torchvision.transforms import functional as F
+from PIL import Image
 
 def label_data(coco, category='person'):
     """
@@ -60,3 +20,22 @@ def label_data(coco, category='person'):
     output += [(im["file_name"], 0) for im in no_imgs]
 
     return output
+
+
+class ResizeAndPad:
+    def __init__(self, target_size=500):
+        self.target_size = target_size
+
+    def __call__(self, image: Image.Image):
+        w, h = image.size
+        scale = self.target_size / max(w, h)
+        new_w, new_h = int(w * scale), int(h * scale)
+        
+        image = F.resize(image, [new_h, new_w])
+        tensor = F.to_tensor(image)
+
+        pad_right = self.target_size - new_w
+        pad_bottom = self.target_size - new_h
+
+        padded = F.pad(tensor, [0, 0, pad_right, pad_bottom], fill=0)
+        return padded
