@@ -3,6 +3,9 @@ from Cython.Build import cythonize
 import numpy as np
 import sys
 
+# To compile and install locally run "python setup.py build_ext --inplace"
+# To install library to Python site-packages run "python setup.py build_ext install"
+
 compile_args = ['-Wno-cpp', '-Wno-unused-function', '-std=c99'] if not sys.platform == 'win32' else []
 
 ext_modules = cythonize([
