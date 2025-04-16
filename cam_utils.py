@@ -30,12 +30,12 @@ class ResizeAndPad:
         w, h = image.size
         scale = self.target_size / max(w, h)
         new_w, new_h = int(w * scale), int(h * scale)
-        
+
         image = F.resize(image, [new_h, new_w])
-        tensor = F.to_tensor(image)
+        # tensor = F.to_tensor(image)
 
         pad_right = self.target_size - new_w
         pad_bottom = self.target_size - new_h
 
-        padded = F.pad(tensor, [0, 0, pad_right, pad_bottom], fill=0)
+        padded = F.pad(image, [0, 0, pad_right, pad_bottom], fill=0)
         return padded
