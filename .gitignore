@@ -17,3 +17,4 @@ PythonAPI/pycocotools/mask.pyc
 PythonAPI/build/
 PythonAPI/dist/
 PythonAPI/pycocotools.egg-info/
+PythonAPI/pycocotools/__pycache__
