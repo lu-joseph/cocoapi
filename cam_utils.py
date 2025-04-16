@@ -5,6 +5,7 @@ from skimage import transform
 def resize(im, target_size=500):
     """
     im: numpy.ndarray
+    target_size: int
     returns:
         numpy.ndarray
     """
@@ -27,6 +28,8 @@ def resize(im, target_size=500):
 
 def split_data(coco, category="person"):
     """
+    coco: COCO
+    category: str
     returns: [yes_file_names, no_file_names]
     """
     cat_id = coco.getCatIds(catNms=[category])[0]
@@ -39,3 +42,21 @@ def split_data(coco, category="person"):
     no_file_names = [im["file_name"] for im in no_imgs]
 
     return [yes_file_names, no_file_names]
+
+def label_data(coco, category='person'):
+    """
+    returns:
+        list[file_name, 0/1]
+    """
+    output = []
+
+    cat_id = coco.getCatIds(catNms=[category])[0]
+    img_ids = coco.getImgIds(catIds=[cat_id])
+    yes_imgs = coco.loadImgs(ids=img_ids)
+    output += [(im["file_name"], 1) for im in yes_imgs]
+
+    no_target_ids_set = set(coco.getImgIds()) - set(img_ids)
+    no_imgs = coco.loadImgs(ids=list(no_target_ids_set))
+    output += [(im["file_name"], 0) for im in no_imgs]
+
+    return output
