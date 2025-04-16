@@ -18,3 +18,4 @@ PythonAPI/build/
 PythonAPI/dist/
 PythonAPI/pycocotools.egg-info/
 PythonAPI/pycocotools/__pycache__
+__pycache__
