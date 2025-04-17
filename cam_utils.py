@@ -41,7 +41,7 @@ class ResizeAndPad:
 
         padded = transforms_F.pad(image, [0, 0, pad_right, pad_bottom], fill=0)
         return padded
-
+    
 class ImageListDataset(Dataset):
     def __init__(self, data_list, data_dir, transform=None):
         self.data_list = data_list
@@ -53,7 +53,7 @@ class ImageListDataset(Dataset):
 
     def __getitem__(self, idx):
         file_name, label = self.data_list[idx]
-        image = Image.open(f'{self.data_dir}/images/{file_name}').convert("RGB")
+        image = Image.open(f'{self.data_dir}/{file_name}').convert("RGB")
         if self.transform:
             image = self.transform(image)
         return image, label
