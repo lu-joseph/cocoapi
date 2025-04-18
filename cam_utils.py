@@ -5,6 +5,8 @@ from PIL import Image
 from torch.utils.data import Dataset
 from pycocotools.coco import COCO
 import matplotlib.pyplot as plt
+import numpy as np
+from sklearn.cluster import DBSCAN
 
 def label_data(coco: COCO, category='person'):
     """
@@ -58,11 +60,10 @@ class ImageListDataset(Dataset):
             image = self.transform(image)
         return image, label
 
-def overlay_cam_with_centroid(image, cam, center, alpha=0.5):
+def overlay_cam_with_centroid(image, cam, alpha=0.5, cam_thresh=0.5, eps=10, min_samples=10):
     """
     image: numpy array [H, W, 3], values in [0, 1]
     cam: numpy array [H, W], values in [0, 1]
-    center: tuple (x, y) in pixel coordinates
     alpha: transparency of heatmap
     """
     fig, ax = plt.subplots()
@@ -70,22 +71,32 @@ def overlay_cam_with_centroid(image, cam, center, alpha=0.5):
     # Show the original image
     ax.imshow(image)
 
-    cam = cam.unsqueeze(0).unsqueeze(0)  # e.g., [1, 1, 14, 14]
+    cam = cam.T.float().unsqueeze(0).unsqueeze(0)  # e.g., [1, 1, 14, 14]
     cam_resized = F.interpolate(cam, size=image.size, mode='bilinear', align_corners=False)
-    cam_resized = cam_resized.squeeze()  # back to [H, W]
-
-    cam_detached = cam_resized.cpu().detach().numpy()
-
+    cam_resized = cam_resized.squeeze().T.cpu().detach().numpy()  # back to [H, W]
+    
     # Overlay the CAM
-    heatmap = ax.imshow(cam_detached.T, cmap='jet', alpha=alpha)
-
-    # Add colorbar if you want
+    heatmap = ax.imshow(cam_resized, cmap='jet', alpha=alpha)
     plt.colorbar(heatmap, ax=ax)
 
-    # Mark the centroid
-    x_com, y_com = center
-    ax.plot(x_com, y_com, 'wo')  # white circle
-    ax.plot(x_com, y_com, 'r+', markersize=12, markeredgewidth=2)  # red cross
+    cam_normalized = cam_resized / cam_resized.sum()
+    cam_mask = cam_resized > cam_thresh
+    yx_coords = np.column_stack(np.where(cam_mask))
+
+    if len(yx_coords) == 0:
+        print("No high-activation regions found.")
+        return
+
+    # Cluster using DBSCAN
+    clustering = DBSCAN(eps=eps, min_samples=min_samples).fit(yx_coords)
+    labels = clustering.labels_
+    unique_labels = set(labels) - {-1}  # remove noise label (-1)
+
+    for label in unique_labels:
+        cluster_pts = yx_coords[labels == label]
+        centroid_yx = cluster_pts.mean(axis=0)
+        ax.plot(centroid_yx[1], centroid_yx[0], 'wo')  # white dot
+        ax.plot(centroid_yx[1], centroid_yx[0], 'r+', markersize=12)
 
     ax.set_title("CAM Overlay with Centroid")
     ax.axis('off')
